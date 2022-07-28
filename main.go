@@ -13,10 +13,9 @@ var filename string = "/tmp/tesseract.png"
 
 func main() {
 
-	lng := "ara"
-	if len(os.Args) > 0 {
-		lng = "eng"
-
+	lng := "eng"
+	if len(os.Args) > 1 {
+		lng = os.Args[1]
 	}
 	var client *gosseract.Client = gosseract.NewClient()
 	defer func(client *gosseract.Client) {
