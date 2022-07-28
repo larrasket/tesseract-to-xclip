@@ -49,5 +49,7 @@ Check [Languages supported in different versions of Tesseract](https://tesseract
 
 # Demo
 
-<output.mp4>
+
+
+https://user-images.githubusercontent.com/74098495/181529497-d87cc2cd-9023-489d-811d-eb4eab3de724.mp4
 
