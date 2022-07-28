@@ -1,0 +1,36 @@
+#+title: Tesseract to Xclip
+
+Small-one-file utility to convert clipboard images to text which automatically copied into
+clipboard, using Tesseract, the Open Source OCR Engine
+
+* The Problem
+
+Taking notes from some PDFs was too painful since I had to write down the text if I wasn't
+capable to copy it (which is the case in image-only PDFs, no text layer, which, also,
+basically 99,9% of Arabic PDFs). This utility ease the process.
+
+* Requirements
++ Tesseract
++ Unix-like OS
+
+
+* Usage
+After installing (use the ~go install~ command), basically run:
+
+#+begin_src shell
+tesseract-to-xclip
+#+end_src
+
+Tesseract has script detection within "OSD", but not language detection, so you cannot detect
+language automatically you have to specify language. By default, it assumes that you want to
+use english. To use it with your desired language, pass its ISO 639-3 identifier, for
+example to run it with Arabic:
+
+#+begin_src shell
+tesseract-to-xclip ara
+#+end_src
+
+Check [[https://tesseract-ocr.github.io/tessdoc/Data-Files-in-different-versions.html][Languages supported in different versions of Tesseract]]
+
+* Demo
+[[file:output.mp4]]
