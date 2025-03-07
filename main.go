@@ -2,59 +2,98 @@ package main
 
 import (
 	"context"
+	_ "image/png"
+	"os"
+	"path/filepath"
+	"runtime"
+	"time"
+
 	"github.com/otiai10/gosseract/v2"
 	"golang.design/x/clipboard"
-	_ "image/png"
-	"io/ioutil"
-	"os"
 )
 
-var filename string = "/tmp/tesseract.png"
-
 func main() {
-
-	lng := "eng"
+	lang := "eng"
 	if len(os.Args) > 1 {
-		lng = os.Args[1]
+		lang = os.Args[1]
 	}
-	var client *gosseract.Client = gosseract.NewClient()
-	defer func(client *gosseract.Client) {
-		err := client.Close()
-		if err != nil {
-			panic(err)
-		}
-	}(client)
 
-	err := client.SetLanguage(lng)
+	tempDir := getTempDir()
+	imgPath := filepath.Join(tempDir, "tesseract.png")
+
+	client, err := setupOCRClient(lang)
 	if err != nil {
-		panic(err)
+		logError("Failed to set up OCR client", err)
+		os.Exit(1)
 	}
+	defer client.Close()
 
-	for {
-		changed := clipboard.Watch(context.Background(), clipboard.FmtImage)
-		select {
-		case <-changed:
-
-			d := clipboard.Read(clipboard.FmtImage)
-			_ = ioutil.WriteFile(filename, d, 0644)
-
-			if err != nil {
-				println("fcu")
-				panic(err)
-			} else {
-				readimage(client)
-				text, _ := client.Text()
-				clipboard.Write(clipboard.FmtText, []byte(text))
-			}
-		}
-	}
-
+	watchClipboard(client, imgPath)
 }
 
-func readimage(client *gosseract.Client) {
+func getTempDir() string {
+	if runtime.GOOS == "darwin" {
+		// On macOS, use /private/tmp explicitly instead of /tmp
+		return "/private/tmp"
+	}
+	return os.TempDir()
+}
 
-	err := client.SetImage(filename)
+func setupOCRClient(lang string) (*gosseract.Client, error) {
+	client := gosseract.NewClient()
+	err := client.SetLanguage(lang)
 	if err != nil {
-		panic(err)
+		return nil, err
+	}
+	return client, nil
+}
+
+func watchClipboard(client *gosseract.Client, imgPath string) {
+	ctx := context.Background()
+	changes := clipboard.Watch(ctx, clipboard.FmtImage)
+
+	for {
+		select {
+		case <-changes:
+			processClipboardImage(client, imgPath)
+		}
+	}
+}
+
+func processClipboardImage(client *gosseract.Client, imgPath string) {
+	imgData := clipboard.Read(clipboard.FmtImage)
+	if len(imgData) == 0 {
+		logError("Empty image data from clipboard", nil)
+		return
+	}
+
+	err := os.WriteFile(imgPath, imgData, 0644)
+	if err != nil {
+		logError("Failed to write image to file", err)
+		return
+	}
+
+	time.Sleep(500 * time.Millisecond)
+
+	err = client.SetImage(imgPath)
+	if err != nil {
+		logError("Failed to set image for OCR", err)
+		return
+	}
+
+	text, err := client.Text()
+	if err != nil {
+		logError("OCR text extraction failed", err)
+		return
+	}
+
+	clipboard.Write(clipboard.FmtText, []byte(text))
+}
+
+func logError(message string, err error) {
+	if err != nil {
+		println(message+":", err.Error())
+	} else {
+		println(message)
 	}
 }
